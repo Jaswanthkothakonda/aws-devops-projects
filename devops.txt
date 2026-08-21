@@ -4,4 +4,6 @@ Git
 AWS
 Docker
 Kubernetes
+Terraform
+Jenkins
 
