@@ -1,0 +1,4 @@
+Project: AWS DevOps Learning
+Environment: Ubuntu WSL
+Cloud: AWS
+Version Control: Git + GitHub
