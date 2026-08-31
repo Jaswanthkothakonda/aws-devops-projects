@@ -1,2 +1,2 @@
-[master fe057ef] Update conflict file from master
- 1 file changed, 1 insertion(+), 1 deletion(-)
+version from master
+version from feature
