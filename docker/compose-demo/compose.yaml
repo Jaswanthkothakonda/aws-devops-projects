@@ -1,0 +1,19 @@
+services:
+  web:
+    image: nginx
+    ports:
+      - "8080:80"
+    depends_on:
+      app:
+        condition: service_healthy
+
+  app:
+    image: amazonlinux:2023
+    command: sleep 3600
+    healthcheck:
+      test: ["CMD", "sleep", "1"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+
+

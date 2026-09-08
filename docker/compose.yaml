@@ -1,0 +1,12 @@
+services:
+  web:
+    image: nginx
+    ports:
+      - "8080:80"
+
+  app:
+    image: amazonlinux:2023
+    command: sleep 3600
+    environment:
+      APP_ENV: development
+      APP_NAME: BeastEats
