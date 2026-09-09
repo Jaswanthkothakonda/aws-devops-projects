@@ -92,6 +92,19 @@ EOF
             }
         }
 
+        stage('Failure Test') {
+            when {
+                environment name: 'ENVIRONMENT', value: 'dev'
+            }
+            steps {
+                sh '''
+                    echo "===== Intentional Failure Test ====="
+                    echo "This stage intentionally fails for Jenkins training."
+                    exit 1
+                '''
+            }
+        }
+
         stage('Docker Build') {
             steps {
                 sh '''
