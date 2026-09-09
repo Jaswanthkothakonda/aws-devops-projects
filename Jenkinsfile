@@ -31,6 +31,20 @@ pipeline {
             }
         }
 
+        stage('Environment Check') {
+            steps {
+                script {
+                    if (env.ENVIRONMENT == 'dev') {
+                        echo 'Development environment selected.'
+                    } else if (env.ENVIRONMENT == 'staging') {
+                        echo 'Staging environment selected.'
+                    } else if (env.ENVIRONMENT == 'production') {
+                        echo 'Production environment selected.'
+                    }
+                }
+            }
+        }
+
         stage('Docker Build') {
             steps {
                 sh '''
