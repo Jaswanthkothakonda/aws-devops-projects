@@ -44,6 +44,32 @@ pipeline {
                 }
             }
         }
+stage('Dev Environment Action') {
+    when {
+        environment name: 'ENVIRONMENT', value: 'dev'
+    }
+    steps {
+        echo 'Running development-specific action.'
+    }
+}
+
+stage('Staging Environment Action') {
+    when {
+        environment name: 'ENVIRONMENT', value: 'staging'
+    }
+    steps {
+        echo 'Running staging-specific action.'
+    }
+}
+
+stage('Production Environment Action') {
+    when {
+        environment name: 'ENVIRONMENT', value: 'production'
+    }
+    steps {
+        echo 'Running production-specific action.'
+    }
+}
 
         stage('Docker Build') {
             steps {
