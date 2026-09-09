@@ -110,10 +110,57 @@ EOF
                 sh '''
                     echo "Testing Docker image..."
 
-                    docker run --rm \
+                    mkdir -p test-results
+
+                    if docker run --rm \
                         ${ECR_REPOSITORY}:${IMAGE_TAG} \
-                        nginx -t
+                        nginx -t > nginx-test.log 2>&1
+                    then
+                        STATUS="PASSED"
+                        echo "Docker/Nginx test passed."
+                    else
+                        STATUS="FAILED"
+                        echo "Docker/Nginx test failed."
+                        cat nginx-test.log
+                    fi
+
+                    if [ "${STATUS}" = "PASSED" ]; then
+                        FAILURE_COUNT=0
+                    else
+                        FAILURE_COUNT=1
+                    fi
+
+                    cat > test-results/nginx-test.xml <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="BeastEats Docker Tests" tests="1" failures="${FAILURE_COUNT}" errors="0" skipped="0">
+    <testcase classname="BeastEats.Docker" name="nginx configuration test">
+EOF
+
+                    if [ "${STATUS}" = "FAILED" ]; then
+                        cat >> test-results/nginx-test.xml <<EOF
+        <failure message="nginx configuration test failed">
+$(cat nginx-test.log)
+        </failure>
+EOF
+                    fi
+
+                    cat >> test-results/nginx-test.xml <<EOF
+    </testcase>
+</testsuite>
+EOF
+
+                    cat test-results/nginx-test.xml
+
+                    if [ "${STATUS}" = "FAILED" ]; then
+                        exit 1
+                    fi
                 '''
+            }
+        }
+
+        stage('Publish Test Results') {
+            steps {
+                junit 'test-results/*.xml'
             }
         }
 
