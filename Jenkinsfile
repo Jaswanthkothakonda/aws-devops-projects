@@ -92,6 +92,24 @@ EOF
             }
         }
 
+        stage('Credential Masking Test') {
+            steps {
+                withCredentials([
+                    string(
+                        credentialsId: 'beasteats-secret-test',
+                        variable: 'TRAINING_SECRET'
+                    )
+                ]) {
+                    sh '''
+                        echo "===== Credential Masking Test ====="
+                        echo "Secret value passed to Jenkins:"
+                        echo "${TRAINING_SECRET}"
+                        echo "Credential masking test complete."
+                    '''
+                }
+            }
+        }
+
         stage('Docker Build') {
             steps {
                 sh '''
