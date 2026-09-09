@@ -31,6 +31,26 @@ pipeline {
             }
         }
 
+        stage('Generate Build Artifact') {
+            steps {
+                sh '''
+                    echo "===== Build Artifact ====="
+
+                    cat > build-info.txt <<EOF
+BeastEats Build Information
+===========================
+Build Number: ${BUILD_NUMBER}
+Environment: ${ENVIRONMENT}
+Image Tag: ${IMAGE_TAG}
+Git Commit: $(git rev-parse HEAD)
+Build Time: $(date)
+EOF
+
+                    cat build-info.txt
+                '''
+            }
+        }
+
         stage('Environment Check') {
             steps {
                 script {
@@ -158,6 +178,8 @@ pipeline {
             echo "BeastEats CI pipeline completed successfully."
             echo "Environment: ${ENVIRONMENT}"
             echo "Image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+
+            archiveArtifacts artifacts: 'build-info.txt', fingerprint: true
         }
 
         failure {
