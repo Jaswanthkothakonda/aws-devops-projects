@@ -1,13 +1,21 @@
 pipeline {
     agent any
 
+    environment {
+        AWS_REGION = 'ap-south-2'
+        ECR_REGISTRY = '734648185802.dkr.ecr.ap-south-2.amazonaws.com'
+        ECR_REPOSITORY = 'beasteats'
+        IMAGE_TAG = "${BUILD_NUMBER}"
+    }
+
     stages {
+
         stage('Build Info') {
             steps {
                 sh '''
                     echo "===== BeastEats CI Pipeline ====="
                     echo "Build Number: ${BUILD_NUMBER}"
-                    echo "Workspace: ${WORKSPACE}"
+                    echo "Image Tag: ${IMAGE_TAG}"
                     echo "Git Commit:"
                     git log -1 --oneline
                 '''
@@ -18,7 +26,9 @@ pipeline {
             steps {
                 sh '''
                     cd docker
-                    docker build -t beasteats:${BUILD_NUMBER} .
+
+                    docker build \
+                        -t ${ECR_REPOSITORY}:${IMAGE_TAG} .
                 '''
             }
         }
@@ -26,7 +36,7 @@ pipeline {
         stage('Docker Test') {
             steps {
                 sh '''
-                    docker run --rm beasteats:${BUILD_NUMBER} nginx -t
+                    docker run --rm ${ECR_REPOSITORY}:${IMAGE_TAG} nginx -t
                 '''
             }
         }
@@ -34,9 +44,11 @@ pipeline {
         stage('ECR Login') {
             steps {
                 sh '''
-                    aws ecr get-login-password --region ap-south-2 | \
-                    docker login --username AWS --password-stdin \
-                    734648185802.dkr.ecr.ap-south-2.amazonaws.com
+                    aws ecr get-login-password \
+                        --region ${AWS_REGION} | \
+                    docker login \
+                        --username AWS \
+                        --password-stdin ${ECR_REGISTRY}
                 '''
             }
         }
@@ -44,11 +56,23 @@ pipeline {
         stage('Push to ECR') {
             steps {
                 sh '''
-                    docker tag beasteats:${BUILD_NUMBER} \
-                    734648185802.dkr.ecr.ap-south-2.amazonaws.com/beasteats:${BUILD_NUMBER}
+                    docker tag \
+                        ${ECR_REPOSITORY}:${IMAGE_TAG} \
+                        ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
 
                     docker push \
-                    734648185802.dkr.ecr.ap-south-2.amazonaws.com/beasteats:${BUILD_NUMBER}
+                        ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+                '''
+            }
+        }
+
+        stage('Verify ECR') {
+            steps {
+                sh '''
+                    aws ecr describe-images \
+                        --repository-name ${ECR_REPOSITORY} \
+                        --image-ids imageTag=${IMAGE_TAG} \
+                        --region ${AWS_REGION}
                 '''
             }
         }
@@ -58,8 +82,18 @@ pipeline {
         success {
             echo 'BeastEats CI pipeline completed successfully.'
         }
+
         failure {
             echo 'BeastEats CI pipeline failed.'
+        }
+
+        always {
+            sh '''
+                docker image rm \
+                    ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} \
+                    ${ECR_REPOSITORY}:${IMAGE_TAG} \
+                    2>/dev/null || true
+            '''
         }
     }
 }
