@@ -222,7 +222,9 @@ EOF
     post {
 
         success {
-            echo "BeastEats CI pipeline completed successfully."
+            echo "========================================"
+            echo "✅ BEASTEATS PIPELINE SUCCESS"
+            echo "========================================"
             echo "Environment: ${ENVIRONMENT}"
             echo "Image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
 
@@ -230,7 +232,16 @@ EOF
         }
 
         failure {
-            echo "BeastEats CI pipeline failed."
+            echo "========================================"
+            echo "❌ BEASTEATS PIPELINE FAILED"
+            echo "========================================"
+            echo "Environment: ${ENVIRONMENT}"
+        }
+
+        aborted {
+            echo "========================================"
+            echo "⏸️ BEASTEATS PIPELINE ABORTED"
+            echo "========================================"
             echo "Environment: ${ENVIRONMENT}"
         }
 
