@@ -138,6 +138,18 @@ stage('Production Environment Action') {
             }
         }
     }
+stage('Production Approval') {
+    when {
+        environment name: 'ENVIRONMENT', value: 'production'
+    }
+
+    steps {
+        input(
+            message: 'Approve BeastEats production release?',
+            ok: 'Approve Release'
+        )
+    }
+}
 
     post {
         success {
