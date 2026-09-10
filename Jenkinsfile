@@ -20,13 +20,19 @@ pipeline {
 
         stage('Build Info') {
             steps {
+                script {
+                    env.GIT_COMMIT_SHORT = sh(
+                        script: 'git rev-parse --short HEAD',
+                        returnStdout: true
+                    ).trim()
+                }
+
                 sh '''
                     echo "===== BeastEats CI Pipeline ====="
                     echo "Build Number: ${BUILD_NUMBER}"
                     echo "Environment: ${ENVIRONMENT}"
                     echo "Image Tag: ${IMAGE_TAG}"
-                    echo "Git Commit:"
-                    git log -1 --oneline
+                    echo "Git Commit: ${GIT_COMMIT_SHORT}"
                 '''
             }
         }
@@ -43,6 +49,7 @@ Build Number: ${BUILD_NUMBER}
 Environment: ${ENVIRONMENT}
 Image Tag: ${IMAGE_TAG}
 Git Commit: $(git rev-parse HEAD)
+Short Commit: ${GIT_COMMIT_SHORT}
 Build Time: $(date)
 EOF
 
@@ -118,7 +125,9 @@ EOF
                     cd docker
 
                     docker build \
-                        -t ${ECR_REPOSITORY}:${IMAGE_TAG} .
+                        -t ${ECR_REPOSITORY}:${IMAGE_TAG} \
+                        -t ${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT} \
+                        .
                 '''
             }
         }
@@ -199,14 +208,21 @@ EOF
         stage('Push to ECR') {
             steps {
                 sh '''
-                    echo "Pushing ${ECR_REPOSITORY}:${IMAGE_TAG} to ECR..."
+                    echo "Pushing BeastEats images to ECR..."
 
                     docker tag \
                         ${ECR_REPOSITORY}:${IMAGE_TAG} \
                         ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
 
+                    docker tag \
+                        ${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT} \
+                        ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT}
+
                     docker push \
                         ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+
+                    docker push \
+                        ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT}
                 '''
             }
         }
@@ -214,11 +230,18 @@ EOF
         stage('Verify ECR') {
             steps {
                 sh '''
-                    echo "Verifying image in ECR..."
+                    echo "Verifying build-number image..."
 
                     aws ecr describe-images \
                         --repository-name ${ECR_REPOSITORY} \
                         --image-ids imageTag=${IMAGE_TAG} \
+                        --region ${AWS_REGION}
+
+                    echo "Verifying commit-tagged image..."
+
+                    aws ecr describe-images \
+                        --repository-name ${ECR_REPOSITORY} \
+                        --image-ids imageTag=${IMAGE_TAG}-${GIT_COMMIT_SHORT} \
                         --region ${AWS_REGION}
                 '''
             }
@@ -241,24 +264,25 @@ EOF
 
         success {
             echo "========================================"
-            echo "✅ BEASTEATS PIPELINE SUCCESS"
+            echo "BEASTEATS PIPELINE SUCCESS"
             echo "========================================"
             echo "Environment: ${ENVIRONMENT}"
             echo "Image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
+            echo "Commit Image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT}"
 
             archiveArtifacts artifacts: 'build-info.txt', fingerprint: true
         }
 
         failure {
             echo "========================================"
-            echo "❌ BEASTEATS PIPELINE FAILED"
+            echo "BEASTEATS PIPELINE FAILED"
             echo "========================================"
             echo "Environment: ${ENVIRONMENT}"
         }
 
         aborted {
             echo "========================================"
-            echo "⏸️ BEASTEATS PIPELINE ABORTED"
+            echo "BEASTEATS PIPELINE ABORTED"
             echo "========================================"
             echo "Environment: ${ENVIRONMENT}"
         }
@@ -269,9 +293,12 @@ EOF
 
                 docker image rm \
                     ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} \
+                    ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT} \
                     ${ECR_REPOSITORY}:${IMAGE_TAG} \
+                    ${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT} \
                     2>/dev/null || true
             '''
         }
     }
 }
+
