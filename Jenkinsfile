@@ -214,15 +214,17 @@ EOF2
 
         stage('ECR Login') {
             steps {
-                sh '''
-                    echo "Logging in to Amazon ECR..."
+                retry(2) {
+                    sh '''
+                        echo "Logging in to Amazon ECR..."
 
-                    aws ecr get-login-password \
-                        --region ${AWS_REGION} | \
-                    docker login \
-                        --username AWS \
-                        --password-stdin ${ECR_REGISTRY}
-                '''
+                        aws ecr get-login-password \
+                            --region ${AWS_REGION} | \
+                        docker login \
+                            --username AWS \
+                            --password-stdin ${ECR_REGISTRY}
+                    '''
+                }
             }
         }
 
