@@ -34,8 +34,10 @@ pipeline {
 
         stage('Checkout SCM') {
             steps {
-                echo 'Checking out source code from GitHub...'
-                checkout scm
+                retry(2) {
+                    echo 'Checking out source code from GitHub...'
+                    checkout scm
+                }
             }
         }
 
