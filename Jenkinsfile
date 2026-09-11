@@ -60,6 +60,23 @@ pipeline {
             }
         }
 
+        stage('Validate Docker Project') {
+            steps {
+                sh '''
+                    echo "===== Validating Docker Project ====="
+
+                    test -f docker/Dockerfile
+                    test -f docker/index.html
+                    test -f docker/.dockerignore
+
+                    echo "Dockerfile found."
+                    echo "index.html found."
+                    echo ".dockerignore found."
+                    echo "Docker project validation passed."
+                '''
+            }
+        }
+
         stage('Generate Build Artifact') {
             steps {
                 sh '''
