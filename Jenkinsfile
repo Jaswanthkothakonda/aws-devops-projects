@@ -232,8 +232,9 @@ EOF2
 
         stage('Push to ECR') {
             steps {
+
                 sh '''
-                    echo "Pushing BeastEats images to ECR..."
+                    echo "Preparing BeastEats images for ECR..."
 
                     docker tag \
                         ${ECR_REPOSITORY}:${IMAGE_TAG} \
@@ -242,13 +243,25 @@ EOF2
                     docker tag \
                         ${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT} \
                         ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT}
-
-                    docker push \
-                        ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
-
-                    docker push \
-                        ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT}
                 '''
+
+                retry(2) {
+                    sh '''
+                        echo "Pushing build-number image..."
+
+                        docker push \
+                            ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+                    '''
+                }
+
+                retry(2) {
+                    sh '''
+                        echo "Pushing commit-tagged image..."
+
+                        docker push \
+                            ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT}
+                    '''
+                }
             }
         }
 
