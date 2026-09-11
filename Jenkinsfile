@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    options {
+        skipDefaultCheckout(true)
+    }
+
     parameters {
         choice(
             name: 'ENVIRONMENT',
@@ -17,6 +21,20 @@ pipeline {
     }
 
     stages {
+
+        stage('Clean Workspace') {
+            steps {
+                echo 'Cleaning Jenkins workspace...'
+                cleanWs()
+            }
+        }
+
+        stage('Checkout SCM') {
+            steps {
+                echo 'Checking out source code from GitHub...'
+                checkout scm
+            }
+        }
 
         stage('Build Info') {
             steps {
