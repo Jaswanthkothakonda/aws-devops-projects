@@ -3,7 +3,7 @@ pipeline {
 
     options {
         skipDefaultCheckout(true)
-        timeout(time: 15, unit: 'MINUTES')
+        timeout(time: 20, unit: 'MINUTES')
         disableConcurrentBuilds()
         timestamps()
     }
@@ -29,7 +29,7 @@ pipeline {
                         mvn -version
 
                         echo "===== Maven Clean Verify ====="
-                        mvn clean verify
+                        mvn -B -ntp -DforkCount=0 clean verify
                     '''
                 }
             }
@@ -43,7 +43,6 @@ pipeline {
                     JAR_FILE="maven-demo/target/maven-demo-1.0-SNAPSHOT.jar"
 
                     test -f "$JAR_FILE"
-
                     jar tf "$JAR_FILE" | grep -q 'com/beasteats/App.class'
 
                     echo "Executable JAR verified: $JAR_FILE"
