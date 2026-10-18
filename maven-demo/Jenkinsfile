@@ -1,0 +1,76 @@
+pipeline {
+    agent any
+
+    options {
+        skipDefaultCheckout(true)
+        timeout(time: 15, unit: 'MINUTES')
+        disableConcurrentBuilds()
+        timestamps()
+    }
+
+    stages {
+        stage('Checkout Source') {
+            steps {
+                echo 'Checking out Maven project from GitHub...'
+                checkout scm
+            }
+        }
+
+        stage('Build and Test') {
+            steps {
+                dir('maven-demo') {
+                    sh '''
+                        set -eu
+
+                        echo "===== Java Version ====="
+                        java -version
+
+                        echo "===== Maven Version ====="
+                        mvn -version
+
+                        echo "===== Maven Clean Verify ====="
+                        mvn clean verify
+                    '''
+                }
+            }
+        }
+
+        stage('Verify JAR Artifact') {
+            steps {
+                sh '''
+                    set -eu
+
+                    JAR_FILE="maven-demo/target/maven-demo-1.0-SNAPSHOT.jar"
+
+                    test -f "$JAR_FILE"
+
+                    jar tf "$JAR_FILE" | grep -q 'com/beasteats/App.class'
+
+                    echo "Executable JAR verified: $JAR_FILE"
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            junit(
+                testResults: 'maven-demo/target/surefire-reports/TEST-*.xml',
+                allowEmptyResults: true
+            )
+        }
+
+        success {
+            archiveArtifacts(
+                artifacts: 'maven-demo/target/maven-demo-1.0-SNAPSHOT.jar',
+                fingerprint: true
+            )
+
+            echo 'Maven CI pipeline completed successfully.'
+        }
+
+        failure {
+            echo 'Maven CI pipeline failed. Review the console log.'
+        }
+    }
+}
