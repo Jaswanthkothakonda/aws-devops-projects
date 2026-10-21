@@ -16,6 +16,15 @@ pipeline {
             }
         }
 
+        stage('Prepare Build Version') {
+            steps {
+                script {
+                    env.MAVEN_REVISION = "1.0.${env.BUILD_NUMBER}"
+                    echo "Maven artifact version: ${env.MAVEN_REVISION}"
+                }
+            }
+        }
+
         stage('Build and Test') {
             steps {
                 dir('maven-demo') {
@@ -29,7 +38,8 @@ pipeline {
                         mvn -version
 
                         echo "===== Maven Clean Verify ====="
-                        mvn -B -ntp -DforkCount=0 clean verify
+                        mvn -B -ntp -DforkCount=0 clean verify \
+                            -Drevision="${MAVEN_REVISION}"
                     '''
                 }
             }
@@ -40,7 +50,7 @@ pipeline {
                 sh '''
                     set -eu
 
-                    JAR_FILE="maven-demo/target/maven-demo-1.0-SNAPSHOT.jar"
+                    JAR_FILE="maven-demo/target/maven-demo-${MAVEN_REVISION}.jar"
 
                     test -f "$JAR_FILE"
                     jar tf "$JAR_FILE" | grep -q 'com/beasteats/App.class'
@@ -60,16 +70,22 @@ pipeline {
         }
 
         success {
-            archiveArtifacts(
-                artifacts: 'maven-demo/target/maven-demo-1.0-SNAPSHOT.jar',
-                fingerprint: true
-            )
+            script {
+                archiveArtifacts(
+                    artifacts: "maven-demo/target/maven-demo-${env.MAVEN_REVISION}.jar",
+                    fingerprint: true
+                )
+            }
 
-            echo 'Maven CI pipeline completed successfully.'
+            echo "Maven CI pipeline completed successfully. Version: ${env.MAVEN_REVISION}"
         }
 
         failure {
             echo 'Maven CI pipeline failed. Review the console log.'
+        }
+
+        aborted {
+            echo 'Maven CI pipeline was aborted.'
         }
     }
 }
