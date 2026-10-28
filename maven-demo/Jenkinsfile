@@ -11,6 +11,7 @@ pipeline {
     environment {
         SONAR_PROJECT_KEY = 'Jaswanthkothakonda_aws-devops-learning'
         SONAR_ORGANIZATION = 'jaswanthkothakonda'
+        SONAR_SCANNER_JAVA_OPTS = '-Xmx512m'
     }
 
     stages {
@@ -65,11 +66,11 @@ pipeline {
                                 set -eu
 
                                 echo "===== SonarQube Cloud Analysis ====="
+                                echo "Scanner heap limit: 512 MB"
 
-                                mvn -B -ntp -DforkCount=0 \
+                                mvn -B -ntp \
                                     -Drevision="${MAVEN_REVISION}" \
-                                    verify \
-                                    org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+                                    org.sonarsource.scanner.maven:sonar-maven-plugin:5.8.0.7211:sonar \
                                     -Dsonar.projectKey="${SONAR_PROJECT_KEY}" \
                                     -Dsonar.organization="${SONAR_ORGANIZATION}"
                             '''
