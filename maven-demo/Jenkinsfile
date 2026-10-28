@@ -8,6 +8,11 @@ pipeline {
         timestamps()
     }
 
+    environment {
+        SONAR_PROJECT_KEY = 'Jaswanthkothakonda_aws-devops-learning'
+        SONAR_ORGANIZATION = 'jaswanthkothakonda'
+    }
+
     stages {
         stage('Checkout Source') {
             steps {
@@ -38,9 +43,38 @@ pipeline {
                         mvn -version
 
                         echo "===== Maven Clean Verify ====="
-                        mvn -B -ntp -DforkCount=0 clean verify \
+                        mvn -B -ntp -DforkCount=0 \
+                            clean verify \
                             -Drevision="${MAVEN_REVISION}"
                     '''
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarCloud') {
+                    withCredentials([
+                        string(
+                            credentialsId: 'sonarcloud-token',
+                            variable: 'SONAR_TOKEN'
+                        )
+                    ]) {
+                        dir('maven-demo') {
+                            sh '''
+                                set -eu
+
+                                echo "===== SonarQube Cloud Analysis ====="
+
+                                mvn -B -ntp -DforkCount=0 \
+                                    -Drevision="${MAVEN_REVISION}" \
+                                    verify \
+                                    org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+                                    -Dsonar.projectKey="${SONAR_PROJECT_KEY}" \
+                                    -Dsonar.organization="${SONAR_ORGANIZATION}"
+                            '''
+                        }
+                    }
                 }
             }
         }
@@ -67,25 +101,20 @@ pipeline {
                 testResults: 'maven-demo/target/surefire-reports/TEST-*.xml',
                 allowEmptyResults: true
             )
+
+            archiveArtifacts(
+                artifacts: 'maven-demo/target/maven-demo-*.jar',
+                fingerprint: true,
+                allowEmptyArchive: true
+            )
         }
 
         success {
-            script {
-                archiveArtifacts(
-                    artifacts: "maven-demo/target/maven-demo-${env.MAVEN_REVISION}.jar",
-                    fingerprint: true
-                )
-            }
-
-            echo "Maven CI pipeline completed successfully. Version: ${env.MAVEN_REVISION}"
+            echo "Maven CI and SonarQube analysis completed. Version: ${env.MAVEN_REVISION}"
         }
 
         failure {
-            echo 'Maven CI pipeline failed. Review the console log.'
-        }
-
-        aborted {
-            echo 'Maven CI pipeline was aborted.'
+            echo 'Pipeline failed. Check the first failing stage in Console Output.'
         }
     }
 }
