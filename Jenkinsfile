@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -228,6 +229,44 @@ EOF2
         stage('Publish Test Results') {
             steps {
                 junit 'test-results/*.xml'
+            }
+        }
+
+        // NEW: SonarCloud source-code analysis
+        stage('SonarCloud Analysis') {
+            steps {
+                script {
+                    def scannerHome = tool 'BeastEatsSonarScanner'
+
+                    withSonarQubeEnv('BeastEatsSonarCloud') {
+                        sh """
+                            ${scannerHome}/bin/sonar-scanner \
+                              -Dsonar.projectKey=Jaswanthkothakonda_beasteats \
+                              -Dsonar.organization=jaswanthkothakonda \
+                              -Dsonar.projectName=BeastEats \
+                              -Dsonar.sources=docker \
+                              -Dsonar.exclusions=**/Dockerfile,**/.dockerignore,**/*.yaml,**/*.yml,**/*.sh \
+                              -Dsonar.sourceEncoding=UTF-8
+                        """
+                    }
+                }
+            }
+        }
+
+        // NEW: Wait for SonarCloud Quality Gate result
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    script {
+                        def qg = waitForQualityGate()
+
+                        echo "BeastEats Quality Gate Status: ${qg.status}"
+
+                        if (qg.status != 'OK') {
+                            error "BeastEats Quality Gate failed: ${qg.status}"
+                        }
+                    }
+                }
             }
         }
 
