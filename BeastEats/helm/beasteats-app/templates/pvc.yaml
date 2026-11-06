@@ -1,0 +1,14 @@
+{{- if and .Values.database.persistence.enabled .Values.database.persistence.createClaim }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-data
+  namespace: {{ .Release.Namespace }}
+spec:
+  accessModes:
+    {{- toYaml .Values.database.persistence.accessModes | nindent 4 }}
+  storageClassName: {{ .Values.database.persistence.storageClassName }}
+  resources:
+    requests:
+      storage: {{ .Values.database.persistence.size }}
+{{- end }}

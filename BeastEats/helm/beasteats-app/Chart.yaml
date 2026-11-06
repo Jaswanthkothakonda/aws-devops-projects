@@ -1,0 +1,6 @@
+apiVersion: v2
+name: beasteats-app
+description: Helm chart for the BeastEats Flask food ordering application
+type: application
+version: 0.1.0
+appVersion: "1.0.0"

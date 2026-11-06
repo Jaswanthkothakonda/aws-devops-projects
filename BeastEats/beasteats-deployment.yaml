@@ -1,0 +1,56 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: beasteats-app
+  namespace: beasteats-dev
+  labels:
+    app: beasteats-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: beasteats-app
+  template:
+    metadata:
+      labels:
+        app: beasteats-app
+    spec:
+      containers:
+        - name: beasteats
+          image: beasteats:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+          env:
+            - name: SECRET_KEY
+              value: "beasteats-local-k8s-development-key"
+            - name: DATABASE_URL
+              value: "sqlite:///beasteats.db"
+          volumeMounts:
+            - name: app-data
+              mountPath: /app/instance
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+      volumes:
+        - name: app-data
+          persistentVolumeClaim:
+            claimName: beasteats-app-data

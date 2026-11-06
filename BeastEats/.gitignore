@@ -1,0 +1,25 @@
+﻿.env
+.venv/
+__pycache__/
+.pytest_cache/
+.coverage
+htmlcov/
+*.pyc
+instance/
+*.db
+
+# Environment files
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Test and lint caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Exclude learning and testing manifests
+/beasteats-db-check.yaml
+/beasteats-storage-init.yaml

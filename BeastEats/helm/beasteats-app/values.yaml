@@ -1,0 +1,56 @@
+replicaCount: 1
+
+image:
+  repository: beasteats
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8000
+
+containerPort: 8000
+
+app:
+  version: "1.0.0"
+
+database:
+  persistence:
+    enabled: true
+    existingClaim: beasteats-app-data
+    mountPath: /app/instance
+
+secret:
+  existingSecret: beasteats-app-secret
+  secretKeyName: SECRET_KEY
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+probes:
+  readiness:
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  liveness:
+    path: /health
+    initialDelaySeconds: 15
+    periodSeconds: 20
+
+ingress:
+  enabled: false
+  className: traefik
+  host: app.beasteats.local
+  path: /
+  pathType: Prefix
+  createClaim: false
+  storageClassName: standard
+  accessModes:
+    - ReadWriteOnce
+  size: 1Gi

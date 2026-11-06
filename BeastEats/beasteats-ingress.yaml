@@ -1,0 +1,18 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: beasteats-app-ingress
+  namespace: beasteats-dev
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: app.beasteats.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: beasteats-app-service
+                port:
+                  number: 80
