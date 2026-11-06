@@ -18,7 +18,12 @@ app:
 database:
   persistence:
     enabled: true
+    createClaim: false
     existingClaim: beasteats-app-data
+    storageClassName: standard
+    accessModes:
+      - ReadWriteOnce
+    size: 1Gi
     mountPath: /app/instance
 
 secret:
@@ -49,8 +54,3 @@ ingress:
   host: app.beasteats.local
   path: /
   pathType: Prefix
-  createClaim: false
-  storageClassName: standard
-  accessModes:
-    - ReadWriteOnce
-  size: 1Gi
