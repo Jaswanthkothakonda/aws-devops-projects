@@ -1,4 +1,3 @@
-
 pipeline {
     agent any
 
@@ -25,10 +24,8 @@ pipeline {
     }
 
     stages {
-
         stage('Clean Workspace') {
             steps {
-                echo 'Cleaning Jenkins workspace...'
                 cleanWs()
             }
         }
@@ -36,7 +33,6 @@ pipeline {
         stage('Checkout SCM') {
             steps {
                 retry(2) {
-                    echo 'Checking out source code from GitHub...'
                     checkout scm
                 }
             }
@@ -53,27 +49,22 @@ pipeline {
 
                 sh '''
                     echo "===== BeastEats CI Pipeline ====="
-                    echo "Build Number: ${BUILD_NUMBER}"
+                    echo "Build: ${BUILD_NUMBER}"
                     echo "Environment: ${ENVIRONMENT}"
-                    echo "Image Tag: ${IMAGE_TAG}"
-                    echo "Git Commit: ${GIT_COMMIT_SHORT}"
+                    echo "Commit: ${GIT_COMMIT_SHORT}"
                 '''
             }
         }
 
-        stage('Validate Docker Project') {
+        stage('Validate BeastEats Project') {
             steps {
                 sh '''
-                    echo "===== Validating Docker Project ====="
-
-                    test -f docker/Dockerfile
-                    test -f docker/index.html
-                    test -f docker/.dockerignore
-
-                    echo "Dockerfile found."
-                    echo "index.html found."
-                    echo ".dockerignore found."
-                    echo "Docker project validation passed."
+                    test -f BeastEats/Dockerfile
+                    test -f BeastEats/requirements.txt
+                    test -f BeastEats/app/__init__.py
+                    test -f BeastEats/tests/test_app.py
+                    test -f sonar-project.properties
+                    echo "BeastEats project validation passed."
                 '''
             }
         }
@@ -81,8 +72,6 @@ pipeline {
         stage('Generate Build Artifact') {
             steps {
                 sh '''
-                    echo "===== Build Artifact ====="
-
                     cat > build-info.txt <<EOF2
 BeastEats Build Information
 ===========================
@@ -93,146 +82,57 @@ Git Commit: $(git rev-parse HEAD)
 Short Commit: ${GIT_COMMIT_SHORT}
 Build Time: $(date)
 EOF2
-
-                    cat build-info.txt
                 '''
             }
         }
 
         stage('Environment Check') {
             steps {
-                script {
-                    if (env.ENVIRONMENT == 'dev') {
-                        echo 'Development environment selected.'
-                    } else if (env.ENVIRONMENT == 'staging') {
-                        echo 'Staging environment selected.'
-                    } else if (env.ENVIRONMENT == 'production') {
-                        echo 'Production environment selected.'
-                    }
-                }
-            }
-        }
-
-        stage('Dev Environment Action') {
-            when {
-                environment name: 'ENVIRONMENT', value: 'dev'
-            }
-            steps {
-                echo 'Running development-specific action.'
-            }
-        }
-
-        stage('Staging Environment Action') {
-            when {
-                environment name: 'ENVIRONMENT', value: 'staging'
-            }
-            steps {
-                echo 'Running staging-specific action.'
-            }
-        }
-
-        stage('Production Environment Action') {
-            when {
-                environment name: 'ENVIRONMENT', value: 'production'
-            }
-            steps {
-                echo 'Running production-specific action.'
-            }
-        }
-
-        stage('Credential Masking Test') {
-            steps {
-                withCredentials([
-                    string(
-                        credentialsId: 'beasteats-secret-test',
-                        variable: 'TRAINING_SECRET'
-                    )
-                ]) {
-                    sh '''
-                        echo "===== Credential Masking Test ====="
-                        echo "Secret value passed to Jenkins:"
-                        echo "${TRAINING_SECRET}"
-                        echo "Credential masking test complete."
-                    '''
-                }
+                echo "Environment selected: ${ENVIRONMENT}"
             }
         }
 
         stage('Docker Build') {
             steps {
                 sh '''
-                    echo "Building BeastEats for ${ENVIRONMENT}"
-
-                    cd docker
-
                     docker build \
                         -t ${ECR_REPOSITORY}:${IMAGE_TAG} \
                         -t ${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT} \
-                        .
+                        BeastEats
                 '''
             }
         }
 
-        stage('Docker Test') {
+        stage('BeastEats Automated Tests') {
             steps {
                 sh '''
-                    echo "Testing Docker image..."
+                    mkdir -p BeastEats/test-results
 
-                    mkdir -p test-results
-
-                    if docker run --rm \
+                    docker run --rm \
+                        --user "$(id -u):$(id -g)" \
+                        -e PYTHONPATH=/app \
+                        -v "$WORKSPACE/BeastEats:/app" \
+                        -w /app \
                         ${ECR_REPOSITORY}:${IMAGE_TAG} \
-                        nginx -t > nginx-test.log 2>&1
-                    then
-                        STATUS="PASSED"
-                        echo "Docker/Nginx test passed."
-                    else
-                        STATUS="FAILED"
-                        echo "Docker/Nginx test failed."
-                        cat nginx-test.log
-                    fi
-
-                    if [ "${STATUS}" = "PASSED" ]; then
-                        FAILURE_COUNT=0
-                    else
-                        FAILURE_COUNT=1
-                    fi
-
-                    cat > test-results/nginx-test.xml <<EOF2
-<?xml version="1.0" encoding="UTF-8"?>
-<testsuite name="BeastEats Docker Tests" tests="1" failures="${FAILURE_COUNT}" errors="0" skipped="0">
-    <testcase classname="BeastEats.Docker" name="nginx configuration test">
-EOF2
-
-                    if [ "${STATUS}" = "FAILED" ]; then
-                        cat >> test-results/nginx-test.xml <<EOF2
-        <failure message="nginx configuration test failed">
-$(cat nginx-test.log)
-        </failure>
-EOF2
-                    fi
-
-                    cat >> test-results/nginx-test.xml <<EOF2
-    </testcase>
-</testsuite>
-EOF2
-
-                    cat test-results/nginx-test.xml
-
-                    if [ "${STATUS}" = "FAILED" ]; then
-                        exit 1
-                    fi
+                        pytest \
+                            --cov=app \
+                            --cov-report=xml:coverage.xml \
+                            --junitxml=test-results/pytest-results.xml \
+                            tests/
                 '''
             }
         }
 
         stage('Publish Test Results') {
             steps {
-                junit 'test-results/*.xml'
+                junit 'BeastEats/test-results/*.xml'
+                archiveArtifacts(
+                    artifacts: 'BeastEats/coverage.xml,BeastEats/test-results/*.xml',
+                    fingerprint: true
+                )
             }
         }
 
-        // NEW: SonarCloud source-code analysis
         stage('SonarCloud Analysis') {
             steps {
                 script {
@@ -241,19 +141,13 @@ EOF2
                     withSonarQubeEnv('BeastEatsSonarCloud') {
                         sh """
                             ${scannerHome}/bin/sonar-scanner \
-                              -Dsonar.projectKey=Jaswanthkothakonda_beasteats \
-                              -Dsonar.organization=jaswanthkothakonda \
-                              -Dsonar.projectName=BeastEats \
-                              -Dsonar.sources=docker \
-                              -Dsonar.exclusions=**/Dockerfile,**/.dockerignore,**/*.yaml,**/*.yml,**/*.sh \
-                              -Dsonar.sourceEncoding=UTF-8
+                                -Dproject.settings=sonar-project.properties
                         """
                     }
                 }
             }
         }
 
-        // NEW: Wait for SonarCloud Quality Gate result
         stage('Quality Gate') {
             steps {
                 timeout(time: 5, unit: 'MINUTES') {
@@ -274,10 +168,8 @@ EOF2
             steps {
                 retry(2) {
                     sh '''
-                        echo "Logging in to Amazon ECR..."
-
                         aws ecr get-login-password \
-                            --region ${AWS_REGION} | \
+                            --region ${AWS_REGION} |
                         docker login \
                             --username AWS \
                             --password-stdin ${ECR_REGISTRY}
@@ -288,10 +180,7 @@ EOF2
 
         stage('Push to ECR') {
             steps {
-
                 sh '''
-                    echo "Preparing BeastEats images for ECR..."
-
                     docker tag \
                         ${ECR_REPOSITORY}:${IMAGE_TAG} \
                         ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
@@ -303,8 +192,6 @@ EOF2
 
                 retry(2) {
                     sh '''
-                        echo "Pushing build-number image..."
-
                         docker push \
                             ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
                     '''
@@ -312,8 +199,6 @@ EOF2
 
                 retry(2) {
                     sh '''
-                        echo "Pushing commit-tagged image..."
-
                         docker push \
                             ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT}
                     '''
@@ -324,14 +209,10 @@ EOF2
         stage('Verify ECR') {
             steps {
                 sh '''
-                    echo "Verifying build-number image..."
-
                     aws ecr describe-images \
                         --repository-name ${ECR_REPOSITORY} \
                         --image-ids imageTag=${IMAGE_TAG} \
                         --region ${AWS_REGION}
-
-                    echo "Verifying commit-tagged image..."
 
                     aws ecr describe-images \
                         --repository-name ${ECR_REPOSITORY} \
@@ -355,36 +236,28 @@ EOF2
     }
 
     post {
-
         success {
-            echo "========================================"
             echo "BEASTEATS PIPELINE SUCCESS"
-            echo "========================================"
             echo "Environment: ${ENVIRONMENT}"
             echo "Image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}"
-            echo "Commit Image: ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT}"
-
-            archiveArtifacts artifacts: 'build-info.txt', fingerprint: true
+            archiveArtifacts(
+                artifacts: 'build-info.txt',
+                fingerprint: true
+            )
         }
 
         failure {
-            echo "========================================"
             echo "BEASTEATS PIPELINE FAILED"
-            echo "========================================"
             echo "Environment: ${ENVIRONMENT}"
         }
 
         aborted {
-            echo "========================================"
             echo "BEASTEATS PIPELINE ABORTED"
-            echo "========================================"
             echo "Environment: ${ENVIRONMENT}"
         }
 
         always {
             sh '''
-                echo "Cleaning local Docker images..."
-
                 docker image rm \
                     ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} \
                     ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT} \

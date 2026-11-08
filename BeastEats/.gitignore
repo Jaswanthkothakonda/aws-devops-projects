@@ -23,3 +23,7 @@ instance/
 # Exclude learning and testing manifests
 /beasteats-db-check.yaml
 /beasteats-storage-init.yaml
+
+# Generated CI test reports
+coverage.xml
+test-results/

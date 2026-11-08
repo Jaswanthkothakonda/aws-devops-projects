@@ -16,9 +16,12 @@ login_manager = LoginManager()
 def create_app(test_config=None):
     app = Flask(__name__)
 
-    app.config["SECRET_KEY"] = os.getenv(
-        "SECRET_KEY", "unsafe-development-key"
-    )
+    secret_key = os.getenv("SECRET_KEY")
+
+    if os.getenv("FLASK_ENV") == "production" and not secret_key:
+        raise RuntimeError("SECRET_KEY must be set in production")
+
+    app.config["SECRET_KEY"] = secret_key or "unsafe-development-key"
     app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv(
         "DATABASE_URL", "sqlite:///beasteats.db"
     )
