@@ -226,38 +226,12 @@ EOF2
                 sh '''
                     set -eu
 
-                    docker tag \
-                        ${ECR_REPOSITORY}:${IMAGE_TAG} \
-                        ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
+                    echo "Publishing unique image tag: ${IMAGE_URI}"
 
-                    docker tag \
-                        ${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT} \
-                        ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT}
+                    docker push "${IMAGE_URI}"
 
-                    docker tag \
-                        ${ECR_REPOSITORY}:${UNIQUE_IMAGE_TAG} \
-                        ${IMAGE_URI}
+                    echo "Successfully pushed ${IMAGE_URI}"
                 '''
-
-                retry(2) {
-                    sh '''
-                        docker push \
-                            ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}
-                    '''
-                }
-
-                retry(2) {
-                    sh '''
-                        docker push \
-                            ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT}
-                    '''
-                }
-
-                retry(2) {
-                    sh '''
-                        docker push "${IMAGE_URI}"
-                    '''
-                }
             }
         }
 
@@ -432,12 +406,9 @@ PY
         always {
             sh '''
                 docker image rm \
-                    ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG} \
-                    ${ECR_REGISTRY}/${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT} \
-                    ${ECR_REGISTRY}/${ECR_REPOSITORY}:${UNIQUE_IMAGE_TAG} \
-                    ${ECR_REPOSITORY}:${IMAGE_TAG} \
-                    ${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT} \
-                    ${ECR_REPOSITORY}:${UNIQUE_IMAGE_TAG} \
+                    "${ECR_REPOSITORY}:${IMAGE_TAG}" \
+                    "${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT}" \
+                    "${ECR_REPOSITORY}:${UNIQUE_IMAGE_TAG}" \
                     2>/dev/null || true
             '''
         }
