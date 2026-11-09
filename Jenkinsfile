@@ -132,6 +132,7 @@ EOF2
                         -t ${ECR_REPOSITORY}:${IMAGE_TAG} \
                         -t ${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT} \
                         -t ${ECR_REPOSITORY}:${UNIQUE_IMAGE_TAG} \
+                        -t ${IMAGE_URI} \
                         BeastEats
                 '''
             }
@@ -409,6 +410,7 @@ PY
                     "${ECR_REPOSITORY}:${IMAGE_TAG}" \
                     "${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT}" \
                     "${ECR_REPOSITORY}:${UNIQUE_IMAGE_TAG}" \
+                    "${IMAGE_URI}" \
                     2>/dev/null || true
             '''
         }
