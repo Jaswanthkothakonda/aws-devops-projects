@@ -299,20 +299,95 @@ region = os.environ["DEPLOY_REGION"]
 
 commands = [
     "set -eu",
+
+    # Verify deployment prerequisites
     "test -f /opt/beasteats/.env",
     "mountpoint -q /app/instance",
     "docker inspect beasteats-app >/dev/null",
+    'curl -fsS http://127.0.0.1:8000/health >/dev/null',
+
+    # Deployment variables
     f"IMAGE_URI={shlex.quote(image_uri)}",
     f"REGION={shlex.quote(region)}",
+
+    # Authenticate and pull new image
     'aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin 734648185802.dkr.ecr.ap-south-2.amazonaws.com',
     'docker pull "$IMAGE_URI"',
+
+    # Record previous image
     'OLD_IMAGE_ID=$(docker inspect --format "{{.Image}}" beasteats-app)',
     'echo "Previous image ID: $OLD_IMAGE_ID"',
+
+    # Rollback function
+    r"""rollback() {
+        echo "Starting rollback to previous image"
+
+        docker rm -f beasteats-app || true
+
+        docker run -d \
+            --name beasteats-app \
+            --restart unless-stopped \
+            -p 8000:8000 \
+            --env-file /opt/beasteats/.env \
+            -v /app/instance:/app/instance \
+            "$OLD_IMAGE_ID"
+
+        attempt=1
+
+        while [ "$attempt" -le 12 ]; do
+            if curl -fsS http://127.0.0.1:8000/health; then
+                echo "Rollback successful; previous application is healthy"
+                return 0
+            fi
+
+            echo "Rollback health check attempt: $attempt"
+            attempt=$((attempt + 1))
+            sleep 5
+        done
+
+        echo "CRITICAL: Rollback application is unhealthy"
+        docker logs --tail 100 beasteats-app || true
+        return 1
+    }""",
+
+    # Stop previous container
     'docker stop beasteats-app',
     'docker rm beasteats-app',
-    'if docker run -d --name beasteats-app --restart unless-stopped -p 8000:8000 --env-file /opt/beasteats/.env -v /app/instance:/app/instance "$IMAGE_URI"; then echo "New container started"; else echo "New container failed to start"; fi',
-    'sleep 10',
-    'if curl -fsS http://127.0.0.1:8000/health; then echo "BeastEats deployment health check passed"; else echo "Health check failed; rolling back"; docker logs --tail 100 beasteats-app || true; docker rm -f beasteats-app || true; docker run -d --name beasteats-app --restart unless-stopped -p 8000:8000 --env-file /opt/beasteats/.env -v /app/instance:/app/instance "$OLD_IMAGE_ID"; sleep 5; curl -fsS http://127.0.0.1:8000/health || true; exit 1; fi'
+
+    # Start new container
+    r"""if ! docker run -d \
+        --name beasteats-app \
+        --restart unless-stopped \
+        -p 8000:8000 \
+        --env-file /opt/beasteats/.env \
+        -v /app/instance:/app/instance \
+        "$IMAGE_URI"; then
+        echo "New container failed to start"
+        rollback || exit 2
+        exit 1
+    fi""",
+
+    # New application health check: 12 attempts, 5 seconds apart
+    r"""attempt=1
+
+    while [ "$attempt" -le 12 ]; do
+        if curl -fsS http://127.0.0.1:8000/health; then
+            echo "BeastEats deployment successful"
+            exit 0
+        fi
+
+        echo "New application health check attempt: $attempt"
+        attempt=$((attempt + 1))
+        sleep 5
+    done
+
+    echo "New application health check failed"
+    docker logs --tail 100 beasteats-app || true
+
+    rollback || exit 2
+
+    echo "Deployment failed; previous application restored"
+    exit 1"""
 ]
 
 with open(sys.argv[1], "w") as f:
