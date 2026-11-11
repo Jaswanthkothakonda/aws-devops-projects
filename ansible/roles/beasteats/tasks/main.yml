@@ -1,0 +1,39 @@
+---
+- name: Create BeastEats application directory
+  ansible.builtin.file:
+    path: /opt/beasteats
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Check BeastEats application container
+  ansible.builtin.command: "docker inspect --format '{{.State.Status}}' {{ app_container_name }}"
+  register: beasteats_container_status
+  changed_when: false
+  failed_when: false
+
+- name: Display BeastEats container status
+  ansible.builtin.debug:
+    msg: "{{ app_name }} container status: {{ beasteats_container_status.stdout | default('not found') }}"
+
+- name: Check BeastEats health endpoint
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:{{ app_port }}{{ app_health_endpoint }}"
+    method: GET
+    return_content: true
+  register: beasteats_health
+  failed_when: false
+  changed_when: false
+
+- name: Display BeastEats health
+  ansible.builtin.debug:
+    msg: "{{ app_name }} health check HTTP status: {{ beasteats_health.status | default('unavailable') }}"
+
+- name: Configure BeastEats environment file
+  ansible.builtin.template:
+    src: beasteats.env.j2
+    dest: /opt/beasteats/beasteats.env
+    owner: root
+    group: root
+    mode: '0640'

@@ -1,0 +1,6 @@
+---
+app_name: BeastEats
+app_container_name: beasteats-app
+app_port: 8000
+app_health_endpoint: /health
+docker_service_name: docker

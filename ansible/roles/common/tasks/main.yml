@@ -1,0 +1,12 @@
+---
+- name: Gather system information
+  ansible.builtin.debug:
+    msg:
+      - "Managed host: {{ inventory_hostname }}"
+      - "Operating system: {{ ansible_distribution }}"
+      - "OS version: {{ ansible_distribution_version }}"
+      - "Architecture: {{ ansible_architecture }}"
+
+- name: Display configuration management status
+  ansible.builtin.debug:
+    msg: "Common configuration role executed successfully."

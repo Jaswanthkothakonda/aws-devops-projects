@@ -54,6 +54,25 @@ pipeline {
             }
         }
 
+        stage('Ansible Syntax Validation') {
+            steps {
+                sh '''
+                    set -eu
+
+                    export ANSIBLE_CONFIG="$WORKSPACE/ansible/ansible.cfg"
+                    cd "$WORKSPACE/ansible"
+
+                    echo "===== Ansible Syntax Validation ====="
+                    ansible-playbook playbooks/site.yml --syntax-check
+
+                    echo "===== Ansible Inventory Validation ====="
+                    ansible-inventory --list >/dev/null
+
+                    echo "Ansible validation completed successfully."
+                '''
+            }
+        }
+
         stage('Build Info') {
             steps {
                 script {
