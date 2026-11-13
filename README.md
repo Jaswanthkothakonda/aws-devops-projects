@@ -1,126 +1,153 @@
-# AWS DevOps Projects Portfolio
+# BeastEats – AWS Cloud & DevOps Project
 
-Welcome to my **AWS DevOps Projects** repository! This repository documents my hands-on learning, practical implementations and projects across AWS, Linux, Docker, Kubernetes, CI/CD and DevOps automation.
+**A Flask-based food ordering application deployed using AWS cloud services and an automated DevOps workflow.**
 
-My focus is on building practical solutions, automating software delivery, implementing cloud infrastructure and developing reliable deployment workflows.
+## Overview
 
-## About Me
+BeastEats is a food ordering web application built with Python and Flask. This project demonstrates the practical implementation of containerization, CI/CD automation, cloud deployment, security, monitoring, and automated testing using AWS and DevOps tools.
 
-Aspiring **AWS DevOps Engineer** with hands-on experience in cloud computing, containerization, CI/CD pipelines, infrastructure automation and application deployment.
+## Architecture
 
-- Cloud: AWS, with foundational knowledge of Azure and GCP
-- Containerization: Docker
-- Container orchestration: Kubernetes, Helm
-- CI/CD: Jenkins, Maven
-- Code quality: SonarCloud
-- Operating systems: Linux
-- Version control: Git and GitHub
-- Infrastructure as Code: Terraform
+```text
+GitHub
+  |
+  v
+Jenkins CI/CD
+  |
+  +---- Docker Build
+  |
+  +---- Pytest
+  |
+  +---- SonarCloud Analysis
+  |
+  +---- Quality Gate
+  |
+  v
+Amazon ECR
+  |
+  v
+AWS Systems Manager
+  |
+  v
+Amazon EC2
+  |
+  v
+Docker Container
+  |
+  v
+BeastEats Application
+```
 
-## Projects
-
-### 1. BeastEats – Flask Food Ordering Application
-
-**Technologies:** Python, Flask, SQLite, Docker, Kubernetes, Helm, Git, GitHub
-
-A functional food ordering web application developed and containerized, with Kubernetes deployment and Helm-based configuration management.
-
-**Key implementations:**
-- Flask application with menu, categories, search and shopping cart functionality.
-- Product nutrition information and database management.
-- Docker image creation and container deployment.
-- Kubernetes Deployment, Service, Ingress and Persistent Volume Claim configuration.
-- Helm chart development and release management.
-- Helm upgrades, revision history and rollback.
-- Development and production configuration using separate values files.
-- Persistent application data and Kubernetes Secret integration.
-
-**Project location:** `BeastEats/`
-
-### 2. Jenkins and CI/CD Pipeline
-
-**Technologies:** Jenkins, GitHub, Maven, Docker, AWS, SonarCloud
-
-Hands-on implementation of CI/CD pipelines for automating software build, analysis and deployment workflows.
-
-**Key implementations:**
-- Jenkins pipeline configuration using Jenkinsfiles.
-- GitHub source code integration.
-- Maven build automation.
-- Docker image creation and Amazon ECR integration.
-- SonarCloud code quality analysis.
-- Quality Gate enforcement to control pipeline progression.
-
-### 3. Maven Build Automation
-
-**Technologies:** Maven, Java, Jenkins
-
-Practical exercises covering Maven project configuration, dependency management, build lifecycle and Jenkins integration.
-
-### 4. Docker Projects
-
-**Technologies:** Docker, Docker Compose, Linux
-
-Hands-on containerization exercises, Dockerfile creation and container management.
-
-### 5. Linux Administration and Scripting
-
-**Technologies:** Linux, Bash
-
-Practical shell scripting exercises covering system checks, file handling, functions, loops and basic operational automation.
-
-## Technical Skills
+## Technology Stack
 
 | Category | Technologies |
 |---|---|
-| Cloud | AWS, Azure fundamentals, GCP fundamentals |
-| CI/CD | Jenkins, Maven |
-| Containers | Docker, Docker Compose |
-| Orchestration | Kubernetes, Helm |
-| Infrastructure as Code | Terraform |
+| Application | Python, Flask |
+| Cloud | AWS |
+| CI/CD | Jenkins, GitHub |
+| Containers | Docker |
+| Container Registry | Amazon ECR |
+| Deployment | Amazon EC2, AWS Systems Manager |
 | Code Quality | SonarCloud |
-| Monitoring | Prometheus, Grafana, Loki |
+| Testing | Pytest, pytest-cov |
+| Infrastructure as Code | Terraform |
 | Configuration Management | Ansible |
-| Version Control | Git, GitHub |
-| Operating Systems | Linux |
-| Scripting | Bash, Python |
-| Programming | Python, Java fundamentals |
+| Monitoring | Prometheus, Grafana |
+| Logging | Grafana Alloy, Loki |
+| Other Tools | Linux, Bash, Maven, Kubernetes, Helm |
+
+## Key Implementations
+
+**1. Application and Containerization**
+- Developed a Flask-based food ordering application.
+- Created Docker images using Python 3.12 and Gunicorn.
+- Configured a non-root application user and container port 8000.
+
+**2. CI/CD Automation**
+- Integrated GitHub with Jenkins using a Jenkinsfile.
+- Automated project validation, Docker builds, and application tests.
+- Integrated SonarCloud analysis and Quality Gate enforcement.
+- Published test reports and coverage artifacts.
+- Automated image publishing to Amazon ECR.
+
+**3. AWS Cloud Deployment**
+- Deployed the application on an existing Amazon EC2 instance.
+- Used Amazon ECR for container image storage.
+- Automated deployment through AWS Systems Manager.
+- Used IAM roles and security groups to control access.
+- Configured application health validation.
+
+**4. Security and Infrastructure**
+- Implemented IAM permissions and least-privilege access.
+- Implemented ECR image scanning and lifecycle policies.
+- Used Terraform for AWS infrastructure automation.
+- Worked with Ansible for configuration-management automation.
+
+**5. Monitoring and Logging**
+- Used Prometheus and Grafana for monitoring.
+- Used Grafana Alloy to collect container logs.
+- Used Loki for centralized log querying.
+
+## Testing and Validation
+
+The application test suite covers health checks, homepage responses, menu and category APIs, user registration, and authentication.
+
+<badge color="success">11 tests passed</badge>
+
+Verified using Docker with Python 3.12.16 and pytest 9.2.0.
+
+Application health endpoint:
+
+```bash
+curl http://localhost:8000/health
+```
+
+Verified response:
+
+```json
+{
+  "application": "BeastEats",
+  "status": "healthy",
+  "version": "1.0.0"
+}
+```
 
 ## Repository Structure
 
 ```text
 aws-devops-projects/
-│
 ├── BeastEats/
 │   ├── app/
-│   ├── helm/
+│   ├── tests/
 │   ├── migrations/
+│   ├── helm/
 │   ├── Dockerfile
 │   └── requirements.txt
-│
+├── ansible/
 ├── docker/
 ├── linux/
 ├── maven-demo/
+├── terraform/
 ├── Jenkinsfile
 ├── README.md
 └── .gitignore
 ```
 
-## Learning and Development
+## Project Highlights
 
-This repository is continuously evolving as I expand my practical knowledge of:
+- Automated CI/CD pipeline using Jenkins.
+- Docker image management with Amazon ECR.
+- AWS EC2 deployment through Systems Manager.
+- SonarCloud quality analysis and automated testing.
+- AWS security and infrastructure automation.
+- Monitoring and centralized container logging.
 
-- AWS Cloud and DevOps services
-- CI/CD pipeline automation
-- Kubernetes and Helm
-- Infrastructure as Code
-- Monitoring and observability
-- Multi-cloud DevOps practices
+## About Me
 
-## Connect
+Aspiring **AWS DevOps Engineer** with hands-on experience in AWS cloud services, CI/CD, Docker, Jenkins, Terraform, Ansible, Kubernetes, and monitoring tools.
 
 **GitHub:** [Jaswanthkothakonda](https://github.com/Jaswanthkothakonda)
 
 ---
 
-*Building, automating and improving one project at a time.*
+*Building and deploying applications through AWS Cloud and DevOps automation.*
