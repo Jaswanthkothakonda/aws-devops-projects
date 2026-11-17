@@ -1,5 +1,19 @@
-docker/compose-demo/.env
-docker/secret-demo.txt
+
+# Docker secrets and environment files
+Containerization-Orchestration/Docker/compose-demo/.env
+Containerization-Orchestration/Docker/secret-demo.txt
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+coverage.xml
 
 # Terraform
 **/.terraform/

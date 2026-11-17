@@ -33,7 +33,7 @@ pipeline {
 
         stage('Build and Test') {
             steps {
-                dir('maven-demo') {
+                dir('CI-CD-Automation/Maven') {
                     sh '''
                         set -eu
 
@@ -61,7 +61,7 @@ pipeline {
                             variable: 'SONAR_TOKEN'
                         )
                     ]) {
-                        dir('maven-demo') {
+                        dir('CI-CD-Automation/Maven') {
                             sh '''
                                 set -eu
 
@@ -101,7 +101,7 @@ pipeline {
                 sh '''
                     set -eu
 
-                    JAR_FILE="maven-demo/target/maven-demo-${MAVEN_REVISION}.jar"
+                    JAR_FILE="CI-CD-Automation/Maven/target/maven-demo-${MAVEN_REVISION}.jar"
 
                     test -f "$JAR_FILE"
                     jar tf "$JAR_FILE" | grep -q 'com/beasteats/App.class'
@@ -115,12 +115,12 @@ pipeline {
     post {
         always {
             junit(
-                testResults: 'maven-demo/target/surefire-reports/TEST-*.xml',
+                testResults: 'CI-CD-Automation/Maven/target/surefire-reports/TEST-*.xml',
                 allowEmptyResults: true
             )
 
             archiveArtifacts(
-                artifacts: 'maven-demo/target/maven-demo-*.jar',
+                artifacts: 'CI-CD-Automation/Maven/target/maven-demo-*.jar',
                 fingerprint: true,
                 allowEmptyArchive: true
             )

@@ -59,8 +59,8 @@ pipeline {
                 sh '''
                     set -eu
 
-                    export ANSIBLE_CONFIG="$WORKSPACE/ansible/ansible.cfg"
-                    cd "$WORKSPACE/ansible"
+                    export ANSIBLE_CONFIG="$WORKSPACE/Infrastructure-as-Code/Ansible/ansible.cfg"
+                    cd "$WORKSPACE/Infrastructure-as-Code/Ansible"
 
                     echo "===== Ansible Syntax Validation ====="
                     ansible-playbook playbooks/site.yml --syntax-check
@@ -103,11 +103,11 @@ pipeline {
                 sh '''
                     set -eu
 
-                    test -f BeastEats/Dockerfile
-                    test -f BeastEats/requirements.txt
-                    test -f BeastEats/app/__init__.py
-                    test -f BeastEats/tests/test_app.py
-                    test -f sonar-project.properties
+                    test -f BeastEats-Project/Dockerfile
+                    test -f BeastEats-Project/requirements.txt
+                    test -f BeastEats-Project/app/__init__.py
+                    test -f BeastEats-Project/tests/test_app.py
+                    test -f BeastEats-Project/sonar-project.properties
 
                     docker --version
                     aws --version
@@ -152,7 +152,7 @@ EOF2
                         -t ${ECR_REPOSITORY}:${IMAGE_TAG}-${GIT_COMMIT_SHORT} \
                         -t ${ECR_REPOSITORY}:${UNIQUE_IMAGE_TAG} \
                         -t ${IMAGE_URI} \
-                        BeastEats
+                        BeastEats-Project
                 '''
             }
         }
@@ -162,12 +162,12 @@ EOF2
                 sh '''
                     set -eu
 
-                    mkdir -p BeastEats/test-results
+                    mkdir -p BeastEats-Project/test-results
 
                     docker run --rm \
                         --user "$(id -u):$(id -g)" \
                         -e PYTHONPATH=/app \
-                        -v "$WORKSPACE/BeastEats:/app" \
+                        -v "$WORKSPACE/BeastEats-Project:/app" \
                         -w /app \
                         ${ECR_REPOSITORY}:${IMAGE_TAG} \
                         pytest \
@@ -181,10 +181,10 @@ EOF2
 
         stage('Publish Test Results') {
             steps {
-                junit 'BeastEats/test-results/*.xml'
+                junit 'BeastEats-Project/test-results/*.xml'
 
                 archiveArtifacts(
-                    artifacts: 'BeastEats/coverage.xml,BeastEats/test-results/*.xml',
+                    artifacts: 'BeastEats-Project/coverage.xml,BeastEats-Project/test-results/*.xml',
                     fingerprint: true
                 )
             }
@@ -201,7 +201,7 @@ EOF2
                         ]) {
                             sh """
                                 ${scannerHome}/bin/sonar-scanner \
-                                    -Dproject.settings=sonar-project.properties
+                                    -Dproject.settings=BeastEats-Project/sonar-project.properties
                             """
                         }
                     }

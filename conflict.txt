@@ -1,2 +1,0 @@
-version from master
-version from feature
